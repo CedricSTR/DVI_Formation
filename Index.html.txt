@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QCM — Protocole INTERPOL DVI</title>
+<style>
+  :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: #f1f5f9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(15,23,42,.08); padding: 32px; }
+  .center { text-align: center; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 0 0 20px; }
+  .sub { color: #64748b; margin: 0 0 24px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 6px; color: #334155; }
+  input[type=text] { width: 100%; padding: 11px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; outline: none; }
+  input[type=text]:focus { border-color: #2563eb; }
+  button { cursor: pointer; border: none; font-size: 1rem; font-weight: 600; padding: 12px 22px; border-radius: 12px; transition: .15s; }
+  .btn-primary { background: #2563eb; color: #fff; width: 100%; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+  .bar-bg { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; margin: 6px 0 24px; }
+  .bar-fill { background: #2563eb; height: 8px; border-radius: 999px; transition: width .3s; }
+  .meta { display: flex; justify-content: space-between; font-size: .85rem; color: #64748b; }
+  .timer { font-variant-numeric: tabular-nums; font-weight: 700; color: #2563eb; }
+  .timer.warn { color: #dc2626; }
+  .choice { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; margin-bottom: 10px; font-size: 1rem; }
+  .choice:hover { border-color: #cbd5e1; }
+  .choice.sel { border-color: #2563eb; background: #eff6ff; color: #1e3a8a; font-weight: 500; }
+  .badge { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+  .choice.sel .badge { background: #2563eb; color: #fff; }
+  .review { border-left: 5px solid; border-radius: 12px; box-shadow: 0 2px 8px rgba(15,23,42,.06); padding: 18px 20px; margin-bottom: 12px; background: #fff; }
+  .review.ok { border-color: #22c55e; }
+  .review.ko { border-color: #ef4444; }
+  .review p { margin: 3px 0; font-size: .9rem; }
+  .exp { color: #64748b; font-style: italic; }
+  .good { color: #16a34a; }
+  .bad { color: #dc2626; }
+  .scorebig { font-size: 2.2rem; font-weight: 800; }
+  .alert { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-top: 12px; }
+  .okmsg { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap"><div id="app"></div></div>
+
+<script>
+"use strict";
+
+/* ====== CONFIGURATION ENSEIGNANT ====== */
+// URL de votre endpoint de collecte des scores (ex. https://monserveur.fr/qcm/save.php).
+// Laissez vide ("") pour tester sans envoyer les résultats.
+const SUBMIT_URL = "";
+
+// Durée du QCM en minutes (0 = sans chronomètre)
+const DURATION_MINUTES = 20;
+
+// Nombre de questions tirées au hasard parmi la banque
+const NB_QUESTIONS = 15;
+/* ====================================== */
+
+const QUESTIONS = [
+  { q: "Que signifie l'acronyme DVI ?",
+    choices: ["Disaster Victim Identification", "Data Verification and Inspection", "Disaster Victim Investigation", "Death Verification and Identification"],
+    answer: 0,
+    explain: "DVI signifie « Disaster Victim Identification » : identification des victimes de catastrophes." },
+  { q: "Combien de phases compte le processus DVI de l'INTERPOL ?",
+    choices: ["2", "3", "4", "5"], answer: 2,
+    explain: "Quatre phases : 1) Scene (site), 2) PM (examen post-mortem), 3) AM (données ante-mortem), 4) Reconciliation." },
+  { q: "Dans quel ordre chronologique le processus DVI se déroule-t-il ?",
+    choices: ["AM → PM → Scene → Reconciliation", "Scene → PM → AM → Reconciliation", "Scene → AM → PM → Reconciliation", "PM → Scene → Reconciliation → AM"],
+    answer: 1,
+    explain: "Le traitement se fait dans l'ordre : site de la catastrophe, examen post-mortem, collecte ante-mortem, puis réconciliation." },
+  { q: "Que signifie « AM » dans le contexte DVI ?",
+    choices: ["After Mortem", "Ante Mortem", "Ambulatory Mortuary", "Analysis and Matching"],
+    answer: 1,
+    explain: "AM = Ante Mortem : données concernant la personne disparue avant le décès (famille, dentiste, médecin…)." },
+  { q: "Que signifie « PM » dans le contexte DVI ?",
+    choices: ["Post Mortem", "Pre Mortem", "Primary Match", "Property Management"],
+    answer: 0,
+    explain: "PM = Post Mortem : données recueillies lors de l'examen des restes humains en salle d'autopsie." },
+  { q: "À quoi correspond la Phase 1 « Scene » ?",
+    choices: ["La collecte des données auprès des familles", "Le traitement des restes humains et des effets personnels sur le site de la catastrophe", "La comparaison des données AM et PM", "La publication des identifications dans la presse"],
+    answer: 1,
+    explain: "La Phase 1 couvre le traitement des restes humains et des biens sur le site, après sécurisation." },
+  { q: "Quelles sont les trois méthodes d'identification dites « primaires » ?",
+    choices: ["Vêtements, bijoux, papiers d'identité", "Empreintes digitales, comparaison dentaire, ADN", "Témoignages, photographies, tatouages", "Radiographies, prise de sang, signalement"],
+    answer: 1,
+    explain: "Les identificateurs primaires sont les empreintes digitales, l'odontologie et l'ADN : ce sont les plus fiables scientifiquement." },
+  { q: "Quel critère l'INTERPOL exige-t-il pour valider une identification ?",
+    choices: ["Une correspondance d'au moins 80 % entre données AM et PM", "Une identification visuelle par la famille", "Une correspondance de 100 % entre les données AM et PM", "Un délai minimum de 48 heures d'enquête"],
+    answer: 2,
+    explain: "L'identification n'est possible qu'en cas de correspondance à 100 % entre les données AM et PM, validée par une commission d'identification." },
+  { q: "Quelle est la couleur traditionnelle du formulaire AM de l'INTERPOL ?",
+    choices: ["Jaune", "Rose", "Vert", "Bleu"], answer: 0,
+    explain: "Les formulaires AM sont de couleur jaune, les formulaires PM de couleur rose, et la fiche de réconciliation verte." },
+  { q: "Quelle est la couleur du formulaire PM de l'INTERPOL ?",
+    choices: ["Jaune", "Rose", "Vert", "Blanc"], answer: 1,
+    explain: "Le formulaire PM est rose. Le rose est aussi la couleur des étiquettes apposées sur les restes et les biens personnels sur le site." },
+  { q: "Qui coordonne la collecte des données ante-mortem lors d'une opération DVI ?",
+    choices: ["Le DVI AM Coordinator", "Le DVI Scene Coordinator", "Le Team Commander de l'INTERPOL", "Le préfet de zone"],
+    answer: 0,
+    explain: "Le DVI AM Coordinator gère les activités de la phase ante-mortem, notamment le recueil des données auprès des familles et des sources diverses." },
+  { q: "Quel est le rôle du « Reconciliation Centre » ?",
+    choices: ["Sécuriser le site de la catastrophe", "Comparer et apparier les données AM et PM pour aboutir aux identifications", "Informer les médias des avancées", "Gérer l'hébergement des équipes internationales"],
+    answer: 1,
+    explain: "Le Reconciliation Centre centralise les fichiers AM et PM, enregistre les informations et organise la comparaison par les spécialistes." },
+  { q: "Pourquoi la sécurisation et la préservation du site (Phase 1) sont-elles prioritaires ?",
+    choices: ["Pour permettre aux familles d'accéder au site", "Pour protéger la scène, préserver les preuves et garantir la sécurité des équipes", "Pour accélérer les identifications visuelles", "Pour éviter les demandes de presse"],
+    answer: 1,
+    explain: "La scène doit être protégée : sécurité du personnel, chaîne de préservation des preuves et documentation rigoureuse (photographie, numérotation, grille)." },
+  { q: "Parmi ces sources, laquelle est typiquement sollicitée pour les données AM ?",
+    choices: ["Les prothèses dentaires retrouvées sur le site", "Le dentiste traitant de la personne disparue", "Les radiologies effectuées en salle d'autopsie", "Les effets personnels trouvés sur les restes"],
+    answer: 1,
+    explain: "Les données AM proviennent de sources extérieures : famille, dentiste traitant, médecin généraliste, employeur, services de police…" },
+  { q: "Pourquoi les effets personnels (bijoux, vêtements, tatouages) ne suffisent-ils pas à identifier seuls une victime ?",
+    choices: ["Ils sont trop coûteux à analyser", "Ils ne sont pas scientifiquement fiables : ils constituent des indices secondaires, non une preuve d'identification", "L'INTERPOL interdit de les collecter", "Ils ne sont jamais retrouvés intacts"],
+    answer: 1,
+    explain: "Les identificateurs secondaires orientent l'enquête mais ne suffisent pas : seuls les identificateurs primaires permettent une identification formelle." },
+  { q: "Quel principe fondamental justifie le processus DVI vis-à-vis des familles ?",
+    choices: ["La rapidité avant tout", "Le droit des victimes et de leurs familles à une identité restituée, et le deuil facilité", "L'obligation légale de compter les victimes pour les assurances", "La nécessité de fermer rapidement les enquêtes judiciaires"],
+    answer: 1,
+    explain: "Le DVI repose sur le principe que toute victime a droit à retrouver son identité : le respect des droits des victimes et de leurs familles guide le protocole." },
+  { q: "Pourquoi utilise-t-on une grille de découpage et une numérotation sur le site de la catastrophe ?",
+    choices: ["Pour estimer le nombre total de victimes", "Pour documenter la position exacte de chaque reste et tracer la chaîne de custodie", "Pour faciliter le travail des médias", "Pour répartir les restes entre les pays participants"],
+    answer: 1,
+    explain: "La documentation méthodique (grilles, photographies, numéros uniques) garantit la traçabilité de chaque reste et la valeur probante des données PM." },
+  { q: "Où se déroule l'examen post-mortem (Phase 2) ?",
+    choices: ["Sur le site même de la catastrophe", "En salle d'autopsie / mortuaire temporaire", "Au siège de l'INTERPOL à Lyon", "Chez le dentiste de la victime"],
+    answer: 1,
+    explain: "La Phase 2 se déroule en morgue : examens externes et internes, prélèvements ADN, radiographies, examen dentaire complet." },
+];
+
+const LETTERS = ["A", "B", "C", "D"];
+const app = document.getElementById("app");
+const state = {
+  student: null, order: [], current: 0, answers: {},
+  startTime: 0, timerId: null, timeSpent: 0, submitted: false,
+};
+
+function shuffle(a) {
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+}
+
+function fmt(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+function renderIntro() {
+  app.innerHTML = `
+    <div class="card center">
+      <div style="font-size:3rem">🛬</div>
+      <h1>Protocole INTERPOL DVI</h1>
+      <p class="sub">Identification des victimes de catastrophes</p>
+      <p class="sub">${NB_QUESTIONS} questions tirées au hasard${DURATION_MINUTES ? " · chronomètre " + DURATION_MINUTES + " min" : ""} · correction et explications à la fin</p>
+      <form id="idForm">
+        <label for="fNom">Nom</label>
+        <input type="text" id="fNom" required autocomplete="family-name" />
+        <label for="fPrenom">Prénom</label>
+        <input type="text" id="fPrenom" required autocomplete="given-name" />
+        <label for="fService">Service</label>
+        <input type="text" id="fService" required />
+        <div style="height:22px"></div>
+        <button class="btn-primary" type="submit">Commencer le QCM</button>
+      </form>
+    </div>`;
+  document.getElementById("idForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    state.student = {
+      nom: document.getElementById("fNom").value.trim(),
+      prenom: document.getElementById("fPrenom").value.trim(),
+      service: document.getElementById("fService").value.trim(),
+    };
+    startQuiz();
+  });
+}
+
+function startQuiz() {
+  state.order = shuffle(QUESTIONS.map((_, i) => i)).slice(0, NB_QUESTIONS);
+  state.current = 0;
+  state.answers = {};
+  state.startTime = Date.now();
+  state.submitted = false;
+  if (DURATION_MINUTES > 0) {
+    const deadline = state.startTime + DURATION_MINUTES * 60000;
+    state.timerId = setInterval(() => {
+      const left = deadline - Date.now();
+      const el = document.getElementById("timer");
+      if (el) {
+        el.textContent = fmt(left);
+        if (left < 60000) el.classList.add("warn");
+      }
+      if (left <= 0) finish(true);
+    }, 500);
+  }
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const qi = state.order[state.current];
+  const q = QUESTIONS[qi];
+  const total = state.order.length;
+  const progress = Math.round((state.current / total) * 100);
+  app.innerHTML = `
+    <div class="card">
+      <div class="meta">
+        <span>Question ${state.current + 1} / ${total}</span>
+        ${DURATION_MINUTES > 0 ? '<span class="timer" id="timer">--:--</span>' : "<span>QCM DVI</span>"}
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${progress}%"></div></div>
+      <h2>${q.q}</h2>
+      <div id="choices">${q.choices.map((c, i) => `
+        <button type="button" class="choice" data-i="${i}">
+          <span class="badge">${LETTERS[i]}</span><span>${c}</span>
+        </button>`).join("")}
+      </div>
+      <button class="btn-primary" id="nextBtn" disabled>
+        ${state.current + 1 === total ? "Voir le résultat" : "Question suivante"}
+      </button>
+    </div>`;
+  let sel = null;
+  const nextBtn = document.getElementById("nextBtn");
+  document.getElementById("choices").addEventListener("click", (e) => {
+    const btn = e.target.closest(".choice");
+    if (!btn) return;
+    sel = Number(btn.dataset.i);
+    document.querySelectorAll(".choice").forEach((b) => b.classList.remove("sel"));
+    btn.classList.add("sel");
+    nextBtn.disabled = false;
+  });
+  nextBtn.addEventListener("click", () => {
+    state.answers[qi] = sel;
+    state.current++;
+    if (state.current >= total) finish(false);
+    else renderQuestion();
+  });
+}
+
+function finish(timeout) {
+  if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+  state.timeSpent = Date.now() - state.startTime;
+  renderResult(timeout);
+  if (!state.submitted) submitScore();
+}
+
+function renderResult(timeout) {
+  const score = state.order.filter((qi) => state.answers[qi] === QUESTIONS[qi].answer).length;
+  const total = state.order.length;
+  const pct = Math.round((score / total) * 100);
+  const emoji = pct >= 80 ? "🎉" : pct >= 50 ? "👍" : "📚";
+  const color = pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
+  const review = state.order.map((qi, idx) => {
+    const q = QUESTIONS[qi];
+    const given = state.answers[qi];
+    const ok = given === q.answer;
+    return `<div class="review ${ok ? "ok" : "ko"}">
+      <p><strong>${idx + 1}. ${q.q}</strong> ${ok ? "✅" : "❌"}</p>
+      ${!ok && given != null ? `<p class="bad">Votre réponse : ${LETTERS[given]}. ${q.choices[given]}</p>` : ""}
+      <p class="good">Bonne réponse : ${LETTERS[q.answer]}. ${q.choices[q.answer]}</p>
+      <p class="exp">${q.explain}</p>
+    </div>`;
+  }).join("");
+  app.innerHTML = `
+    <div class="card center">
+      ${timeout ? '<div class="alert">⏱ Temps écoulé — le QCM a été clôturé automatiquement.</div>' : ""}
+      <div style="font-size:3rem">${emoji}</div>
+      <h1 class="scorebig">${score} / ${total}</h1>
+      <p class="sub">${state.student.prenom} ${state.student.nom} — ${state.student.service} · ${pct}% · temps : ${fmt(state.timeSpent)}</p>
+      <div class="bar-bg" style="margin-top:8px"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div id="submitStatus" class="sub" style="margin-top:6px">${SUBMIT_URL ? "Envoi du score…" : "⚠️ Aucun SUBMIT_URL configuré : le score n'est pas enregistré côté serveur."}</div>
+      <div style="height:14px"></div>
+      <button class="btn-primary" id="retryBtn" style="max-width:340px">Recommencer (nouveau tirage)</button>
+    </div>
+    <div style="height:18px"></div>
+    ${review}`;
+  document.getElementById("retryBtn").addEventListener("click", startQuiz);
+}
+
+async function submitScore() {
+  state.submitted = true;
+  const el = () => document.getElementById("submitStatus");
+  const score = state.order.filter((qi) => state.answers[qi] === QUESTIONS[qi].answer).length;
+  const payload = {
+    nom: state.student.nom, prenom: state.student.prenom, service: state.student.service,
+    score: score, total: state.order.length,
+    percentage: Math.round((score / state.order.length) * 100),
+    time_spent_sec: Math.round(state.timeSpent / 1000),
+    date: new Date().toISOString(),
+    answers: state.order.map((qi, i) => ({
+      question: QUESTIONS[qi].q,
+      question_index: qi,
+      given: state.answers[qi], correct_index: QUESTIONS[qi].answer,
+    })),
+  };
+  if (!SUBMIT_URL) return;
+  try {
+    const res = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (el()) el().innerHTML = '<span class="okmsg" style="display:block">✅ Score enregistré avec succès.</span>';
+  } catch (err) {
+    if (el()) el().innerHTML = '<div class="alert" style="display:block">⚠️ Échec de l\'envoi du score (' + err.message + '). Contactez votre enseignant.</div>';
+  }
+}
+
+renderIntro();
+</script>
+</body>
+</html>
