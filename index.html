@@ -350,6 +350,17 @@ const QUESTIONS = [
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
+
+// Mélange aléatoire des choix de chaque question (à chaque chargement de page),
+// en réattribuant l'index de la bonne réponse — pour que la position de la
+// bonne réponse ne soit pas prévisible.
+for (const q of QUESTIONS) {
+  const idx = shuffle(q.choices.map((_, i) => i));
+  const newChoices = idx.map((i) => q.choices[i]);
+  q.answer = idx.indexOf(q.answer);
+  q.choices = newChoices;
+}
+
 const app = document.getElementById("app");
 const state = {
   student: null, order: [], current: 0, answers: {},
