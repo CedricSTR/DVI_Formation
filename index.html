@@ -50,12 +50,12 @@
 "use strict";
 
 /* ====== CONFIGURATION ENSEIGNANT ====== */
-// URL de votre endpoint de collecte des scores (ex. https://monserveur.fr/qcm/save.php).
+// URL de votre endpoint de collecte des scores (Apps Script).
 // Laissez vide ("") pour tester sans envoyer les résultats.
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbzbs4Xe7xqX5SBzxcWLazLN5aywlUT0FMm1tF8S7abDFv0ElL6-VXTbSMp3jqLYqbr9fA/exec";
 
 // Durée du QCM en minutes (0 = sans chronomètre)
-const DURATION_MINUTES = 5;
+const DURATION_MINUTES = 10;
 
 // Nombre de questions tirées au hasard parmi la banque
 const NB_QUESTIONS = 20;
@@ -193,7 +193,7 @@ const QUESTIONS = [
       "L'INTERPOL déclare l'affaire close après un mois",
     ],
     answer: 1,
-    explain: "L'inhumation de corps non identifiés se fait sous numéro, avec conservation des données et échantillons : les avancées scientifiques et les croisements futurs permettent parfois une identification différée." },
+    explain: "L'inhumation de corps non identifiés se fait sous numéro, avec conservation des données et échantillons : les avancées scientifiques permettent parfois une identification différée." },
   { q: "Pourquoi le principe de « confidentialité » est-il essentiel en opération DVI ?",
     choices: [
       "Pour protéger la réputation des autorités",
@@ -203,6 +203,150 @@ const QUESTIONS = [
     ],
     answer: 1,
     explain: "Les informations sur les victimes et sur l'avancement des identifications sont strictement protégées : une annonce erronée d'identification est l'une des pires erreurs possibles en DVI." },
+  { q: "En quelle année et à la suite de quel événement l'UGIVC a-t-elle été créée ?",
+    choices: [
+      "En 1984, à la suite du tsunami en Asie",
+      "En 1992, après la catastrophe aérienne du Mont Sainte-Odile",
+      "En 2001, après les attentats du 11 septembre",
+      "En 2015, après le crash de la Germanwings",
+    ],
+    answer: 1,
+    explain: "L'UGIVC a été créée en 1992, après la catastrophe aérienne du Mont Sainte-Odile. Elle est intervenue depuis à plus de 80 reprises en France, outre-mer ou à l'étranger." },
+  { q: "Qu'est-ce que l'UGIVC ?",
+    choices: [
+      "Une unité permanente de police judiciaire spécialisée dans les disparitions",
+      "Une unité de circonstance mise sur pied par l'IRCGN, projetable rapidement sur zone",
+      "Un service civil de l'INSEE chargé du recensement des victimes",
+      "Une agence internationale dépendant directement de l'INTERPOL",
+    ],
+    answer: 1,
+    explain: "L'UGIVC est une unité de circonstance mise sur pied par l'Institut de Recherche Criminelle de la Gendarmerie Nationale (IRCGN), en mesure de projeter rapidement un détachement sur zone." },
+  { q: "Qui préside la commission d'identification qui officialise les identifications et permet la remise des corps aux familles ?",
+    choices: [
+      "Le commandant de l'UGIVC",
+      "Le procureur de la République",
+      "Le directeur de l'IRCGN",
+      "Le représentant de l'INTERPOL",
+    ],
+    answer: 1,
+    explain: "La commission d'identification est présidée par le procureur de la République. Elle confirme et officialise les identifications préparées par le comité technique, permettant les permis d'inhumer et la remise des corps." },
+  { q: "Que prévoit le guide DVI de l'INTERPOL pour l'intervention des équipes en milieu contaminé ?",
+    choices: [
+      "Il exclut toute intervention en zone contaminée",
+      "Une annexe spécifique (annexe 16) traite de l'intervention des équipes DVI en milieu NRBC (Nucléaire, Radiologique, Biologique et Chimique)",
+      "Seuls les militaires français peuvent intervenir en zone contaminée",
+      "Les équipes attendent la décontamination complète avant tout relevage",
+    ],
+    answer: 1,
+    explain: "L'annexe 16 du guide DVI, relative à l'intervention en milieu NRBC, est le fruit de l'expertise de l'IRCGN partagée avec les spécialistes du monde entier." },
+  { q: "En France, où l'équipe ante-mortem est-elle principalement localisée lors d'une opération DVI ?",
+    choices: [
+      "Sur le site même de la catastrophe",
+      "Dans des locaux dédiés à Pontoise, avec un élément projeté sur le terrain auprès des familles",
+      "Au siège de l'INTERPOL, à Lyon",
+      "À l'Institut médico-légal de Paris",
+    ],
+    answer: 1,
+    explain: "L'équipe AM est localisée pour sa plus grande partie à Pontoise (gestion des bases de renseignements AM/PM, contacts avec médecins, dentistes, administrations…), mais un élément est systématiquement projeté sur le terrain pour recueillir les renseignements auprès des familles." },
+  { q: "Que recouvre le module PM1 « relevage des corps » ?",
+    choices: [
+      "La comparaison des données AM et PM",
+      "Le ramassage des corps et fragments avec une méthodologie de numérotation rigoureuse (codes-barres) et leur conservation en morgue réfrigérée",
+      "L'autopsie médico-légale des corps",
+      "Le recueil des renseignements auprès des familles",
+    ],
+    answer: 1,
+    explain: "PM1 assure le relevage des corps et fragments humains avec numérotation rigoureuse par codes-barres, conservation en morgue réfrigérée et, avant toute intervention, une modélisation 3D de la scène pour faciliter son exploitation ultérieure." },
+  { q: "Avant toute intervention sur le site, quelle étape systématique facilite l'exploitation ultérieure de la scène de catastrophe ?",
+    choices: [
+      "Une reconstitution auxiliaire de la catastrophe",
+      "Une modélisation en 3 dimensions de la scène",
+      "Un survol par drone de reconnaissance",
+      "Un inventaire photographique des seuls effets personnels",
+    ],
+    answer: 1,
+    explain: "Une modélisation 3D de la scène de catastrophe est systématiquement effectuée avant toute intervention de relevage (module PM1)." },
+  { q: "À quoi sert le module PM2 « tri » ?",
+    choices: [
+      "À trier les corps selon leur état de conservation pour l'inhumation",
+      "À réaliser un premier rapprochement d'une identité avec un corps à partir d'identifiants secondaires (documents, photos, téléphone…) et à l'orienter vers la chaîne adéquate",
+      "À répartir les corps entre les chaînes d'autopsie en fonction de la charge de travail",
+      "À classer les objets personnels par catégories",
+    ],
+    answer: 1,
+    explain: "PM2 exploite les éléments identifiants secondaires trouvés sur le corps (documents d'identité, photos, téléphone…) pour proposer un rapprochement et orienter le corps vers la chaîne d'identification ou de confirmation adaptée." },
+  { q: "Que fait le module PM3 « confirmation de rapprochement » ?",
+    choices: [
+      "Il confirme les identifications par le procureur de la République",
+      "Il confirme les orientations du tri en s'appuyant sur les identifiants primaires (odontologie, ADN, empreintes digitales), conformément au protocole INTERPOL",
+      "Il vérifie la validité des documents d'identité trouvés sur les corps",
+      "Il confirme le rapprochement des familles avec les corps par reconnaissance visuelle",
+    ],
+    answer: 1,
+    explain: "PM3 confirme les rapprochements proposés par le tri à l'aide des éléments identifiants primaires (odontologie, ADN, empreintes digitales), conformément au protocole INTERPOL." },
+  { q: "Quel est le rôle du module PM4 « chaîne d'identification » ?",
+    choices: [
+      "Déterminer les causes de la mort par autopsie",
+      "Relever et conserver tous les éléments identifiants (primaires et secondaires) avant l'envoi éventuel du corps en chaîne d'autopsie",
+      "Recueillir les données ante-mortem auprès des familles",
+      "Assurer la communication avec la presse",
+    ],
+    answer: 1,
+    explain: "PM4 est la chaîne d'examen de corps où tous les éléments identifiants (primaires et secondaires) sont relevés et conservés ; le corps peut ensuite être envoyé ou non en chaîne d'autopsie." },
+  { q: "Dans quel cadre s'effectue le module PM5 « chaîne d'autopsie » ?",
+    choices: [
+      "Au siège de l'IRCGN, exclusivement",
+      "Dans un institut de médecine légale ou au sein d'une structure foraine de circonstance déployée avec les moyens spécifiques de l'IRCGN",
+      "Directement sur le site de la catastrophe, sans abri",
+      "Dans les locaux des pompes funèbres",
+    ],
+    answer: 1,
+    explain: "PM5 complète si nécessaire la chaîne d'identification et détermine précisément les causes de la mort, en institut de médecine légale ou dans une structure foraine (tentes et matériels transportables) : crash Germanwings dans les Alpes en 2015, vol Air Algérie au Mali en 2014." },
+  { q: "Qui le module AM1 « entretien famille » interroge-t-il, et où ?",
+    choices: [
+      "Les médecins traitants, au laboratoire",
+      "Les proches des personnes disparues, le plus souvent sur site ou à proximité de la zone de catastrophe",
+      "Les témoins de la catastrophe, au commissariat",
+      "Les administrations, par courrier",
+    ],
+    answer: 1,
+    explain: "AM1 recueille les informations identifiantes du vivant des personnes disparues auprès de leurs proches, le plus souvent sur site — les familles étant généralement présentes près de la zone de la catastrophe." },
+  { q: "Pour les victimes de nationalité étrangère, avec qui le module AM2 (données médicales et dentaires) travaille-t-il ?",
+    choices: [
+      "Seul, sans coordination extérieure",
+      "En association avec les équipes DVI étrangères et l'INTERPOL",
+      "Exclusivement avec les hôpitaux français",
+      "Avec l'Organisation mondiale de la santé",
+    ],
+    answer: 1,
+    explain: "AM2 recueille les données médicales et dentaires auprès des praticiens des victimes, en association avec les équipes DVI étrangères et l'INTERPOL pour les victimes de nationalité non française." },
+  { q: "Où le module AM3 (données ADN et administratives) trouve-t-il notamment les relevés d'empreintes d'une personne disparue ?",
+    choices: [
+      "Uniquement sur ses effets personnels",
+      "Dans les dossiers de demande de carte nationale d'identité ou de passeport (ANTS et préfectures)",
+      "Dans les fichiers des opérateurs téléphoniques",
+      "Chez son employeur",
+    ],
+    answer: 1,
+    explain: "AM3 collecte les données d'État civil, les relevés d'empreintes effectués lors des demandes de CNI ou de passeport (ANTS et préfectures), et les prélèvements d'ADN de référence (objets du défunt, ADN des parents proches : ascendants, descendants, collatéraux)." },
+  { q: "Quel est le rôle du module AM5 « confrontation des données Ante et Post Mortem » ?",
+    choices: [
+      "Organiser des confrontations visuelles entre familles et corps",
+      "Croiser les données AM et PM par des spécialistes de chaque domaine, à l'aide de logiciels de comparaison, pour aboutir à des rapprochements présentés au comité technique",
+      "Confronter les différents services de secours sur leurs responsabilités",
+      "Vérifier les déclarations des familles entre elles",
+    ],
+    answer: 1,
+    explain: "AM5 réunit des spécialistes de chaque domaine (médecins et dentistes légistes, biologistes, spécialistes en empreintes…) qui croisent les données PM et AM à l'aide de logiciels de comparaison ; les rapprochements obtenus alimentent le comité technique en vue d'identifications formelles." },
+  { q: "Quelle est la mission du comité technique dans le processus d'identification ?",
+    choices: [
+      "Officialiser les identifications et rédiger les permis d'inhumer",
+      "Rassembler les experts et enquêteurs ayant participé aux opérations pour déterminer et préparer la commission d'identification",
+      "Commander les opérations de relevage sur le site",
+      "Gérer la communication avec les familles et les médias",
+    ],
+    answer: 1,
+    explain: "Le comité technique rassemble les différents experts et enquêteurs des opérations d'identification pour déterminer et préparer la commission d'identification, seule habilitée à confirmer et officialiser les identifications." },
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
