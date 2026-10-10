@@ -55,10 +55,10 @@
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbzbs4Xe7xqX5SBzxcWLazLN5aywlUT0FMm1tF8S7abDFv0ElL6-VXTbSMp3jqLYqbr9fA/exec";
 
 // Durée du QCM en minutes (0 = sans chronomètre)
-const DURATION_MINUTES = 5;
+const DURATION_MINUTES = 20;
 
 // Nombre de questions tirées au hasard parmi la banque
-const NB_QUESTIONS = 15;
+const NB_QUESTIONS = 20;
 /* ====================================== */
 
 const QUESTIONS = [
@@ -131,6 +131,78 @@ const QUESTIONS = [
     choices: ["Sur le site même de la catastrophe", "En salle d'autopsie / mortuaire temporaire", "Au siège de l'INTERPOL à Lyon", "Chez le dentiste de la victime"],
     answer: 1,
     explain: "La Phase 2 se déroule en morgue : examens externes et internes, prélèvements ADN, radiographies, examen dentaire complet." },
+  { q: "Quel est le rôle de l'INTERPOL dans une opération DVI internationale ?",
+    choices: [
+      "Prendre le commandement opérationnel des équipes sur le terrain",
+      "Publier les guides DVI de référence, coordonner l'entraide policière et faciliter la coopération entre pays",
+      "Déclarer officiellement les décès à la place des états",
+      "Financer les opérations d'identification",
+    ],
+    answer: 1,
+    explain: "L'INTERPOL édicte les standards (DVI Guide) et sert de cadre de coordination ; le commandement opérationnel reste aux autorités du pays concerné." },
+  { q: "Qu'est-ce qu'un « temporary mortuary » (morgue temporaire) ?",
+    choices: [
+      "Un véhicule réfrigéré pour transporter les familles",
+      "Une structure d'examen improvisée ou préfabriquée, mise en place près du site quand les capacités locales sont dépassées",
+      "La morgue de l'hôpital le plus proche",
+      "Un entrepôt pour les effets personnels",
+    ],
+    answer: 1,
+    explain: "Face à un grand nombre de victimes, une morgue temporaire sécurisée et contrôlée est installée pour procéder aux examens PM dans de bonnes conditions." },
+  { q: "Quelles précautions s'appliquent aux prélèvements ADN dans le processus DVI ?",
+    choices: [
+      "Ils sont réalisés uniquement sur les familles",
+      "Ils doivent être réalisés avec des protocoles stricts anti-contamination, tracés et comparés aux profils de référence (victime ou famille)",
+      "Ils ne sont nécessaires que pour les victimes non identifiables visuellement",
+      "Ils sont interdits dans certains pays, donc jamais utilisés",
+    ],
+    answer: 1,
+    explain: "La chaîne de custodie et la prévention de la contamination sont essentielles : le profil PM est comparé aux profils de référence de la personne disparue ou de sa famille." },
+  { q: "Pourquoi les proches d'une personne disparue sont-ils parfois sollicités pour donner un échantillon biologique (ADN) ?",
+    choices: [
+      "Pour vérifier leur identité administrative",
+      "Parce que l'ADN des apparentés permet une comparaison familiale avec le profil de la victime présumée",
+      "Par obligation légale systématique dans toutes les catastrophes",
+      "Pour exclure les familles de l'accès au site",
+    ],
+    answer: 1,
+    explain: "En l'absence de référence directe (brosse à dents…), l'ADN des proches (comparaison familiale) permet d'établir un lien biologique avec la victime." },
+  { q: "Qu'est-ce que la « chaîne de custodie » (chain of custody) en DVI ?",
+    choices: [
+      "L'escorte officielle des familles sur le site",
+      "La traçabilité documentée continue de chaque reste et preuve, depuis la récupération jusqu'à la restitution",
+      "Le protocole de garde des défunts au funérarium",
+      "La liaison radio entre les équipes de terrain et le poste de commandement",
+    ],
+    answer: 1,
+    explain: "Chaque transfert et manipulation est enregistré : sans chaîne de custodie intacte, la valeur probante des données (et donc l'identification) peut être contestée." },
+  { q: "Qui valide formellement une identification avant la restitution du corps à la famille ?",
+    choices: [
+      "Le premier intervenant sur le site",
+      "Une commission d'identification (ID Commission) qui examine les correspondances AM/PM",
+      "Le directeur de l'hôpital",
+      "Le chef de la sécurité civile",
+    ],
+    answer: 1,
+    explain: "La correspondance est présentée à une commission d'identification pluridisciplinaire ; ce n'est qu'après sa validation que la restitution peut être prononcée." },
+  { q: "Que se passe-t-il lorsqu'une victime ne peut pas être identifiée à l'issue du processus ?",
+    choices: [
+      "Le dossier est classé sans suite et le corps est enterré anonymement",
+      "Les données PM sont conservées et le dossier reste ouvert, en vue d'une identification future",
+      "Le corps est restitué à la famille la plus proche géographiquement",
+      "L'INTERPOL déclare l'affaire close après un mois",
+    ],
+    answer: 1,
+    explain: "L'inhumation de corps non identifiés se fait sous numéro, avec conservation des données et échantillons : les avancées scientifiques et les croisements futurs permettent parfois une identification différée." },
+  { q: "Pourquoi le principe de « confidentialité » est-il essentiel en opération DVI ?",
+    choices: [
+      "Pour protéger la réputation des autorités",
+      "Parce que la divulgation prématurée ou erronée d'identités cause des préjudices graves aux familles et à l'enquête",
+      "Parce que les données médicales des victimes n'ont aucun intérêt",
+      "Pour éviter que les médias ne financent l'opération",
+    ],
+    answer: 1,
+    explain: "Les informations sur les victimes et sur l'avancement des identifications sont strictement protégées : une annonce erronée d'identification est l'une des pires erreurs possibles en DVI." },
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -302,6 +374,8 @@ async function submitScore() {
   };
   if (!SUBMIT_URL) return;
   try {
+    // Apps Script (Google) exige un POST "simple request" sans Content-Type JSON
+    // (sinon le navigateur déclenche une pré-vérification CORS non gérée par Google).
     const res = await fetch(SUBMIT_URL, {
       method: "POST",
       body: JSON.stringify(payload),
