@@ -304,10 +304,11 @@ async function submitScore() {
   try {
     const res = await fetch(SUBMIT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error("HTTP " + res.status);
     if (el()) el().innerHTML = '<span class="okmsg" style="display:block">✅ Score enregistré avec succès.</span>';
   } catch (err) {
     if (el()) el().innerHTML = '<div class="alert" style="display:block">⚠️ Échec de l\'envoi du score (' + err.message + '). Contactez votre enseignant.</div>';
