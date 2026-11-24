@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QCM — Protocole INTERPOL DVI</title>
+<style>
+  :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: #f1f5f9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(15,23,42,.08); padding: 32px; }
+  .center { text-align: center; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 0 0 20px; }
+  .sub { color: #64748b; margin: 0 0 24px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 6px; color: #334155; }
+  input[type=text] { width: 100%; padding: 11px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; outline: none; }
+  input[type=text]:focus { border-color: #2563eb; }
+  button { cursor: pointer; border: none; font-size: 1rem; font-weight: 600; padding: 12px 22px; border-radius: 12px; transition: .15s; }
+  .btn-primary { background: #2563eb; color: #fff; width: 100%; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+  .bar-bg { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; margin: 6px 0 24px; }
+  .bar-fill { background: #2563eb; height: 8px; border-radius: 999px; transition: width .3s; }
+  .meta { display: flex; justify-content: space-between; font-size: .85rem; color: #64748b; }
+  .timer { font-variant-numeric: tabular-nums; font-weight: 700; color: #2563eb; }
+  .timer.warn { color: #dc2626; }
+  .choice { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; margin-bottom: 10px; font-size: 1rem; }
+  .choice:hover { border-color: #cbd5e1; }
+  .choice.sel { border-color: #2563eb; background: #eff6ff; color: #1e3a8a; font-weight: 500; }
+  .badge { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+  .choice.sel .badge { background: #2563eb; color: #fff; }
+  .review { border-left: 5px solid; border-radius: 12px; box-shadow: 0 2px 8px rgba(15,23,42,.06); padding: 18px 20px; margin-bottom: 12px; background: #fff; }
+  .review.ok { border-color: #22c55e; }
+  .review.ko { border-color: #ef4444; }
+  .review p { margin: 3px 0; font-size: .9rem; }
+  .exp { color: #64748b; font-style: italic; }
+  .good { color: #16a34a; }
+  .bad { color: #dc2626; }
+  .scorebig { font-size: 2.2rem; font-weight: 800; }
+  .alert { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-top: 12px; }
+  .okmsg { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 10px; padding: 10px 14px; font-size: .9rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap"><div id="app"></div></div>
+
+<script>
+"use strict";
+
+/* ====== CONFIGURATION ENSEIGNANT ====== */
+// URL de votre endpoint de collecte des scores (Apps Script).
+// Laissez vide ("") pour tester sans envoyer les résultats.
+const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbzbs4Xe7xqX5SBzxcWLazLN5aywlUT0FMm1tF8S7abDFv0ElL6-VXTbSMp3jqLYqbr9fA/exec";
+
+// Durée du QCM en minutes (0 = sans chronomètre)
+const DURATION_MINUTES = 10;
+
+// Nombre de questions tirées au hasard parmi la banque
+const NB_QUESTIONS = 20;
+/* ====================================== */
+
+const QUESTIONS = [
+  { q: "Que signifie l'acronyme DVI ?",
+    choices: ["Disaster Victim Identification", "Data Verification and Inspection", "Disaster Victim Investigation", "Death Verification and Identification"],
+    answer: 0,
+    explain: "DVI signifie « Disaster Victim Identification » : identification des victimes de catastrophes." },
+  { q: "Combien de phases compte le processus DVI de l'INTERPOL ?",
+    choices: ["2", "3", "4", "5"], answer: 2,
+    explain: "Quatre phases : 1) Scene (site), 2) PM (examen post-mortem), 3) AM (données ante-mortem), 4) Reconciliation." },
+  { q: "Dans quel ordre chronologique le processus DVI se déroule-t-il ?",
+    choices: ["AM → PM → Scene → Reconciliation", "Scene → PM → AM → Reconciliation", "Scene → AM → PM → Reconciliation", "PM → Scene → Reconciliation → AM"],
+    answer: 1,
+    explain: "Le traitement se fait dans l'ordre : site de la catastrophe, examen post-mortem, collecte ante-mortem, puis réconciliation." },
+  { q: "Que signifie « AM » dans le contexte DVI ?",
+    choices: ["After Mortem", "Ante Mortem", "Ambulatory Mortuary", "Analysis and Matching"],
+    answer: 1,
+    explain: "AM = Ante Mortem : données concernant la personne disparue avant le décès (famille, dentiste, médecin…)." },
+  { q: "Que signifie « PM » dans le contexte DVI ?",
+    choices: ["Post Mortem", "Pre Mortem", "Primary Match", "Property Management"],
+    answer: 0,
+    explain: "PM = Post Mortem : données recueillies lors de l'examen des restes humains en salle d'autopsie." },
+  { q: "À quoi correspond la Phase 1 « Scene » ?",
+    choices: ["La collecte des données auprès des familles", "Le traitement des restes humains et des effets personnels sur le site de la catastrophe", "La comparaison des données AM et PM", "La publication des identifications dans la presse"],
+    answer: 1,
+    explain: "La Phase 1 couvre le traitement des restes humains et des biens sur le site, après sécurisation." },
+  { q: "Quelles sont les trois méthodes d'identification dites « primaires » ?",
+    choices: ["Vêtements, bijoux, papiers d'identité", "Empreintes digitales, comparaison dentaire, ADN", "Témoignages, photographies, tatouages", "Radiographies, prise de sang, signalement"],
+    answer: 1,
+    explain: "Les identificateurs primaires sont les empreintes digitales, l'odontologie et l'ADN : ce sont les plus fiables scientifiquement." },
+  { q: "Quel critère l'INTERPOL exige-t-il pour valider une identification ?",
+    choices: ["Une correspondance d'au moins 80 % entre données AM et PM", "Une identification visuelle par la famille", "Une correspondance de 100 % entre les données AM et PM", "Un délai minimum de 48 heures d'enquête"],
+    answer: 2,
+    explain: "L'identification n'est possible qu'en cas de correspondance à 100 % entre les données AM et PM, validée par une commission d'identification." },
+  { q: "Quelle est la couleur traditionnelle du formulaire AM de l'INTERPOL ?",
+    choices: ["Jaune", "Rose", "Vert", "Bleu"], answer: 0,
+    explain: "Les formulaires AM sont de couleur jaune, les formulaires PM de couleur rose, et la fiche de réconciliation verte." },
+  { q: "Quelle est la couleur du formulaire PM de l'INTERPOL ?",
+    choices: ["Jaune", "Rose", "Vert", "Blanc"], answer: 1,
+    explain: "Le formulaire PM est rose. Le rose est aussi la couleur des étiquettes apposées sur les restes et les biens personnels sur le site." },
+  { q: "Qui coordonne la collecte des données ante-mortem lors d'une opération DVI ?",
+    choices: ["Le DVI AM Coordinator", "Le DVI Scene Coordinator", "Le Team Commander de l'INTERPOL", "Le préfet de zone"],
+    answer: 0,
+    explain: "Le DVI AM Coordinator gère les activités de la phase ante-mortem, notamment le recueil des données auprès des familles et des sources diverses." },
+  { q: "Quel est le rôle du « Reconciliation Centre » ?",
+    choices: ["Sécuriser le site de la catastrophe", "Comparer et apparier les données AM et PM pour aboutir aux identifications", "Informer les médias des avancées", "Gérer l'hébergement des équipes internationales"],
+    answer: 1,
+    explain: "Le Reconciliation Centre centralise les fichiers AM et PM, enregistre les informations et organise la comparaison par les spécialistes." },
+  { q: "Pourquoi la sécurisation et la préservation du site (Phase 1) sont-elles prioritaires ?",
+    choices: ["Pour permettre aux familles d'accéder au site", "Pour protéger la scène, préserver les preuves et garantir la sécurité des équipes", "Pour accélérer les identifications visuelles", "Pour éviter les demandes de presse"],
+    answer: 1,
+    explain: "La scène doit être protégée : sécurité du personnel, chaîne de préservation des preuves et documentation rigoureuse (photographie, numérotation, grille)." },
+  { q: "Parmi ces sources, laquelle est typiquement sollicitée pour les données AM ?",
+    choices: ["Les prothèses dentaires retrouvées sur le site", "Le dentiste traitant de la personne disparue", "Les radiologies effectuées en salle d'autopsie", "Les effets personnels trouvés sur les restes"],
+    answer: 1,
+    explain: "Les données AM proviennent de sources extérieures : famille, dentiste traitant, médecin généraliste, employeur, services de police…" },
+  { q: "Pourquoi les effets personnels (bijoux, vêtements, tatouages) ne suffisent-ils pas à identifier seuls une victime ?",
+    choices: ["Ils sont trop coûteux à analyser", "Ils ne sont pas scientifiquement fiables : ils constituent des indices secondaires, non une preuve d'identification", "L'INTERPOL interdit de les collecter", "Ils ne sont jamais retrouvés intacts"],
+    answer: 1,
+    explain: "Les identificateurs secondaires orientent l'enquête mais ne suffisent pas : seuls les identificateurs primaires permettent une identification formelle." },
+  { q: "Quel principe fondamental justifie le processus DVI vis-à-vis des familles ?",
+    choices: ["La rapidité avant tout", "Le droit des victimes et de leurs familles à une identité restituée, et le deuil facilité", "L'obligation légale de compter les victimes pour les assurances", "La nécessité de fermer rapidement les enquêtes judiciaires"],
+    answer: 1,
+    explain: "Le DVI repose sur le principe que toute victime a droit à retrouver son identité : le respect des droits des victimes et de leurs familles guide le protocole." },
+  { q: "Pourquoi utilise-t-on une grille de découpage et une numérotation sur le site de la catastrophe ?",
+    choices: ["Pour estimer le nombre total de victimes", "Pour documenter la position exacte de chaque reste et assurer la traçabilité de la preuve", "Pour faciliter le travail des médias", "Pour répartir les restes entre les pays participants"],
+    answer: 1,
+    explain: "La documentation méthodique (grilles, photographies, numéros uniques) garantit la traçabilité de chaque reste et la valeur probante des données PM." },
+  { q: "Où se déroule l'examen post-mortem (Phase 2) ?",
+    choices: ["Sur le site même de la catastrophe", "En salle d'autopsie / mortuaire temporaire", "Au siège de l'INTERPOL à Lyon", "Chez le dentiste de la victime"],
+    answer: 1,
+    explain: "La Phase 2 se déroule en morgue : examens externes et internes, prélèvements ADN, radiographies, examen dentaire complet." },
+  { q: "Quel est le rôle de l'INTERPOL dans une opération DVI internationale ?",
+    choices: [
+      "Prendre le commandement opérationnel des équipes sur le terrain",
+      "Publier les guides DVI de référence, coordonner l'entraide policière et faciliter la coopération entre pays",
+      "Déclarer officiellement les décès à la place des états",
+      "Financer les opérations d'identification",
+    ],
+    answer: 1,
+    explain: "L'INTERPOL édicte les standards (DVI Guide) et sert de cadre de coordination ; le commandement opérationnel reste aux autorités du pays concerné." },
+  { q: "Qu'est-ce qu'un « temporary mortuary » (morgue temporaire) ?",
+    choices: [
+      "Un véhicule réfrigéré pour transporter les familles",
+      "Une structure d'examen improvisée ou préfabriquée, mise en place près du site quand les capacités locales sont dépassées",
+      "La morgue de l'hôpital le plus proche",
+      "Un entrepôt pour les effets personnels",
+    ],
+    answer: 1,
+    explain: "Face à un grand nombre de victimes, une morgue temporaire sécurisée et contrôlée est installée pour procéder aux examens PM dans de bonnes conditions." },
+  { q: "Quelles précautions s'appliquent aux prélèvements ADN dans le processus DVI ?",
+    choices: [
+      "Ils sont réalisés uniquement sur les familles",
+      "Ils doivent être réalisés avec des protocoles stricts anti-contamination, tracés et comparés aux profils de référence (victime ou famille)",
+      "Ils ne sont nécessaires que pour les victimes non identifiables visuellement",
+      "Ils sont interdits dans certains pays, donc jamais utilisés",
+    ],
+    answer: 1,
+    explain: "La traçabilité de la preuve et la prévention de la contamination sont essentielles : le profil PM est comparé aux profils de référence de la personne disparue ou de sa famille." },
+  { q: "Pourquoi les proches d'une personne disparue sont-ils parfois sollicités pour donner un échantillon biologique (ADN) ?",
+    choices: [
+      "Pour vérifier leur identité administrative",
+      "Parce que l'ADN des apparentés permet une comparaison familiale avec le profil de la victime présumée",
+      "Par obligation légale systématique dans toutes les catastrophes",
+      "Pour exclure les familles de l'accès au site",
+    ],
+    answer: 1,
+    explain: "En l'absence de référence directe (brosse à dents…), l'ADN des proches (comparaison familiale) permet d'établir un lien biologique avec la victime." },
+  { q: "Qu'est-ce que la traçabilité de la preuve en DVI ?",
+    choices: [
+      "L'escorte officielle des familles sur le site",
+      "La traçabilité documentée continue de chaque reste et preuve, depuis la récupération jusqu'à la restitution",
+      "Le protocole de garde des défunts au funérarium",
+      "La liaison radio entre les équipes de terrain et le poste de commandement",
+    ],
+    answer: 1,
+    explain: "Chaque transfert et manipulation est enregistré : sans traçabilité de la preuve intacte, la valeur probante des données (et donc l'identification) peut être contestée." },
+  { q: "Qui valide formellement une identification avant la restitution du corps à la famille ?",
+    choices: [
+      "Le premier intervenant sur le site",
+      "Une commission d'identification (ID Commission) qui examine les correspondances AM/PM",
+      "Le directeur de l'hôpital",
+      "Le chef de la sécurité civile",
+    ],
+    answer: 1,
+    explain: "La correspondance est présentée à une commission d'identification pluridisciplinaire ; ce n'est qu'après sa validation que la restitution peut être prononcée." },
+  { q: "Que se passe-t-il lorsqu'une victime ne peut pas être identifiée à l'issue du processus ?",
+    choices: [
+      "Le dossier est classé sans suite et le corps est enterré anonymement",
+      "Les données PM sont conservées et le dossier reste ouvert, en vue d'une identification future",
+      "Le corps est restitué à la famille la plus proche géographiquement",
+      "L'INTERPOL déclare l'affaire close après un mois",
+    ],
+    answer: 1,
+    explain: "L'inhumation de corps non identifiés se fait sous numéro, avec conservation des données et échantillons : les avancées scientifiques permettent parfois une identification différée." },
+  { q: "Pourquoi le principe de « confidentialité » est-il essentiel en opération DVI ?",
+    choices: [
+      "Pour protéger la réputation des autorités",
+      "Parce que la divulgation prématurée ou erronée d'identités cause des préjudices graves aux familles et à l'enquête",
+      "Parce que les données médicales des victimes n'ont aucun intérêt",
+      "Pour éviter que les médias ne financent l'opération",
+    ],
+    answer: 1,
+    explain: "Les informations sur les victimes et sur l'avancement des identifications sont strictement protégées : une annonce erronée d'identification est l'une des pires erreurs possibles en DVI." },
+  { q: "En quelle année et à la suite de quel événement l'UGIVC a-t-elle été créée ?",
+    choices: [
+      "En 1984, à la suite du tsunami en Asie",
+      "En 1992, après la catastrophe aérienne du Mont Sainte-Odile",
+      "En 2001, après les attentats du 11 septembre",
+      "En 2015, après le crash de la Germanwings",
+    ],
+    answer: 1,
+    explain: "L'UGIVC a été créée en 1992, après la catastrophe aérienne du Mont Sainte-Odile. Elle est intervenue depuis à plus de 80 reprises en France, outre-mer ou à l'étranger." },
+  { q: "Qu'est-ce que l'UGIVC ?",
+    choices: [
+      "Une unité permanente de police judiciaire spécialisée dans les disparitions",
+      "Une unité de circonstance mise sur pied par l'IRCGN, projetable rapidement sur zone",
+      "Un service civil de l'INSEE chargé du recensement des victimes",
+      "Une agence internationale dépendant directement de l'INTERPOL",
+    ],
+    answer: 1,
+    explain: "L'UGIVC est une unité de circonstance mise sur pied par l'Institut de Recherche Criminelle de la Gendarmerie Nationale (IRCGN), en mesure de projeter rapidement un détachement sur zone." },
+  { q: "Qui préside la commission d'identification qui officialise les identifications et permet la remise des corps aux familles ?",
+    choices: [
+      "Le commandant de l'UGIVC",
+      "Le procureur de la République",
+      "Le directeur de l'IRCGN",
+      "Le représentant de l'INTERPOL",
+    ],
+    answer: 1,
+    explain: "La commission d'identification est présidée par le procureur de la République. Elle confirme et officialise les identifications préparées par le comité technique, permettant les permis d'inhumer et la remise des corps." },
+  { q: "Que prévoit le guide DVI de l'INTERPOL pour l'intervention des équipes en milieu contaminé ?",
+    choices: [
+      "Il exclut toute intervention en zone contaminée",
+      "Une annexe spécifique (annexe 16) traite de l'intervention des équipes DVI en milieu NRBC (Nucléaire, Radiologique, Biologique et Chimique)",
+      "Seuls les militaires français peuvent intervenir en zone contaminée",
+      "Les équipes attendent la décontamination complète avant tout relevage",
+    ],
+    answer: 1,
+    explain: "L'annexe 16 du guide DVI, relative à l'intervention en milieu NRBC, est le fruit de l'expertise de l'IRCGN partagée avec les spécialistes du monde entier." },
+  { q: "En France, où l'équipe ante-mortem est-elle principalement localisée lors d'une opération DVI ?",
+    choices: [
+      "Sur le site même de la catastrophe",
+      "Dans des locaux dédiés à Pontoise, avec un élément projeté sur le terrain auprès des familles",
+      "Au siège de l'INTERPOL, à Lyon",
+      "À l'Institut médico-légal de Paris",
+    ],
+    answer: 1,
+    explain: "L'équipe AM est localisée pour sa plus grande partie à Pontoise (gestion des bases de renseignements AM/PM, contacts avec médecins, dentistes, administrations…), mais un élément est systématiquement projeté sur le terrain pour recueillir les renseignements auprès des familles." },
+  { q: "Que recouvre le module PM1 « relevage des corps » ?",
+    choices: [
+      "La comparaison des données AM et PM",
+      "Le ramassage des corps et fragments avec une méthodologie de numérotation rigoureuse (codes-barres) et leur conservation en morgue réfrigérée",
+      "L'autopsie médico-légale des corps",
+      "Le recueil des renseignements auprès des familles",
+    ],
+    answer: 1,
+    explain: "PM1 assure le relevage des corps et fragments humains avec numérotation rigoureuse par codes-barres, conservation en morgue réfrigérée et, avant toute intervention, une modélisation 3D de la scène pour faciliter son exploitation ultérieure." },
+  { q: "Avant toute intervention sur le site, quelle étape systématique facilite l'exploitation ultérieure de la scène de catastrophe ?",
+    choices: [
+      "Une reconstitution auxiliaire de la catastrophe",
+      "Une modélisation en 3 dimensions de la scène",
+      "Un survol par drone de reconnaissance",
+      "Un inventaire photographique des seuls effets personnels",
+    ],
+    answer: 1,
+    explain: "Une modélisation 3D de la scène de catastrophe est systématiquement effectuée avant toute intervention de relevage (module PM1)." },
+  { q: "À quoi sert le module PM2 « tri » ?",
+    choices: [
+      "À trier les corps selon leur état de conservation pour l'inhumation",
+      "À réaliser un premier rapprochement d'une identité avec un corps à partir d'identifiants secondaires (documents, photos, téléphone…) et à l'orienter vers la chaîne adéquate",
+      "À répartir les corps entre les chaînes d'autopsie en fonction de la charge de travail",
+      "À classer les objets personnels par catégories",
+    ],
+    answer: 1,
+    explain: "PM2 exploite les éléments identifiants secondaires trouvés sur le corps (documents d'identité, photos, téléphone…) pour proposer un rapprochement et orienter le corps vers la chaîne d'identification ou de confirmation adaptée." },
+  { q: "Que fait le module PM3 « confirmation de rapprochement » ?",
+    choices: [
+      "Il confirme les identifications par le procureur de la République",
+      "Il confirme les orientations du tri en s'appuyant sur les identifiants primaires (odontologie, ADN, empreintes digitales), conformément au protocole INTERPOL",
+      "Il vérifie la validité des documents d'identité trouvés sur les corps",
+      "Il confirme le rapprochement des familles avec les corps par reconnaissance visuelle",
+    ],
+    answer: 1,
+    explain: "PM3 confirme les rapprochements proposés par le tri à l'aide des éléments identifiants primaires (odontologie, ADN, empreintes digitales), conformément au protocole INTERPOL." },
+  { q: "Quel est le rôle du module PM4 « chaîne d'identification » ?",
+    choices: [
+      "Déterminer les causes de la mort par autopsie",
+      "Relever et conserver tous les éléments identifiants (primaires et secondaires) avant l'envoi éventuel du corps en chaîne d'autopsie",
+      "Recueillir les données ante-mortem auprès des familles",
+      "Assurer la communication avec la presse",
+    ],
+    answer: 1,
+    explain: "PM4 est la chaîne d'examen de corps où tous les éléments identifiants (primaires et secondaires) sont relevés et conservés ; le corps peut ensuite être envoyé ou non en chaîne d'autopsie." },
+  { q: "Dans quel cadre s'effectue le module PM5 « chaîne d'autopsie » ?",
+    choices: [
+      "Au siège de l'IRCGN, exclusivement",
+      "Dans un institut de médecine légale ou au sein d'une structure foraine de circonstance déployée avec les moyens spécifiques de l'IRCGN",
+      "Directement sur le site de la catastrophe, sans abri",
+      "Dans les locaux des pompes funèbres",
+    ],
+    answer: 1,
+    explain: "PM5 complète si nécessaire la chaîne d'identification et détermine précisément les causes de la mort, en institut de médecine légale ou dans une structure foraine (tentes et matériels transportables) : crash Germanwings dans les Alpes en 2015, vol Air Algérie au Mali en 2014." },
+  { q: "Qui le module AM1 « entretien famille » interroge-t-il, et où ?",
+    choices: [
+      "Les médecins traitants, au laboratoire",
+      "Les proches des personnes disparues, le plus souvent sur site ou à proximité de la zone de catastrophe",
+      "Les témoins de la catastrophe, au commissariat",
+      "Les administrations, par courrier",
+    ],
+    answer: 1,
+    explain: "AM1 recueille les informations identifiantes du vivant des personnes disparues auprès de leurs proches, le plus souvent sur site — les familles étant généralement présentes près de la zone de la catastrophe." },
+  { q: "Pour les victimes de nationalité étrangère, avec qui le module AM2 (données médicales et dentaires) travaille-t-il ?",
+    choices: [
+      "Seul, sans coordination extérieure",
+      "En association avec les équipes DVI étrangères et l'INTERPOL",
+      "Exclusivement avec les hôpitaux français",
+      "Avec l'Organisation mondiale de la santé",
+    ],
+    answer: 1,
+    explain: "AM2 recueille les données médicales et dentaires auprès des praticiens des victimes, en association avec les équipes DVI étrangères et l'INTERPOL pour les victimes de nationalité non française." },
+  { q: "Où le module AM3 (données ADN et administratives) trouve-t-il notamment les relevés d'empreintes d'une personne disparue ?",
+    choices: [
+      "Uniquement sur ses effets personnels",
+      "Dans les dossiers de demande de carte nationale d'identité ou de passeport (ANTS et préfectures)",
+      "Dans les fichiers des opérateurs téléphoniques",
+      "Chez son employeur",
+    ],
+    answer: 1,
+    explain: "AM3 collecte les données d'État civil, les relevés d'empreintes effectués lors des demandes de CNI ou de passeport (ANTS et préfectures), et les prélèvements d'ADN de référence (objets du défunt, ADN des parents proches : ascendants, descendants, collatéraux)." },
+  { q: "Quel est le rôle du module AM5 « confrontation des données Ante et Post Mortem » ?",
+    choices: [
+      "Organiser des confrontations visuelles entre familles et corps",
+      "Croiser les données AM et PM par des spécialistes de chaque domaine, à l'aide de logiciels de comparaison, pour aboutir à des rapprochements présentés au comité technique",
+      "Confronter les différents services de secours sur leurs responsabilités",
+      "Vérifier les déclarations des familles entre elles",
+    ],
+    answer: 1,
+    explain: "AM5 réunit des spécialistes de chaque domaine (médecins et dentistes légistes, biologistes, spécialistes en empreintes…) qui croisent les données PM et AM à l'aide de logiciels de comparaison ; les rapprochements obtenus alimentent le comité technique en vue d'identifications formelles." },
+  { q: "Quelle est la mission du comité technique dans le processus d'identification ?",
+    choices: [
+      "Officialiser les identifications et rédiger les permis d'inhumer",
+      "Rassembler les experts et enquêteurs ayant participé aux opérations pour déterminer et préparer la commission d'identification",
+      "Commander les opérations de relevage sur le site",
+      "Gérer la communication avec les familles et les médias",
+    ],
+    answer: 1,
+    explain: "Le comité technique rassemble les différents experts et enquêteurs des opérations d'identification pour déterminer et préparer la commission d'identification, seule habilitée à confirmer et officialiser les identifications." },
+];
+
+const LETTERS = ["A", "B", "C", "D"];
+
+// Mélange aléatoire des choix de chaque question (à chaque chargement de page),
+// en réattribuant l'index de la bonne réponse — pour que la position de la
+// bonne réponse ne soit pas prévisible.
+for (const q of QUESTIONS) {
+  const idx = shuffle(q.choices.map((_, i) => i));
+  const newChoices = idx.map((i) => q.choices[i]);
+  q.answer = idx.indexOf(q.answer);
+  q.choices = newChoices;
+}
+
+const app = document.getElementById("app");
+const state = {
+  student: null, order: [], current: 0, answers: {},
+  startTime: 0, timerId: null, timeSpent: 0, submitted: false,
+};
+
+function shuffle(a) {
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+}
+
+function fmt(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+function renderIntro() {
+  app.innerHTML = `
+    <div class="card center">
+      <div style="font-size:3rem">🛬</div>
+      <h1>Protocole INTERPOL DVI</h1>
+      <p class="sub">Identification des victimes de catastrophes</p>
+      <p class="sub">${NB_QUESTIONS} questions tirées au hasard${DURATION_MINUTES ? " · chronomètre " + DURATION_MINUTES + " min" : ""} · correction et explications à la fin</p>
+      <form id="idForm">
+        <label for="fNom">Nom</label>
+        <input type="text" id="fNom" required autocomplete="family-name" />
+        <label for="fPrenom">Prénom</label>
+        <input type="text" id="fPrenom" required autocomplete="given-name" />
+        <label for="fService">Service</label>
+        <input type="text" id="fService" required />
+        <div style="height:22px"></div>
+        <button class="btn-primary" type="submit">Commencer le QCM</button>
+      </form>
+    </div>`;
+  document.getElementById("idForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    state.student = {
+      nom: document.getElementById("fNom").value.trim(),
+      prenom: document.getElementById("fPrenom").value.trim(),
+      service: document.getElementById("fService").value.trim(),
+    };
+    startQuiz();
+  });
+}
+
+function startQuiz() {
+  state.order = shuffle(QUESTIONS.map((_, i) => i)).slice(0, NB_QUESTIONS);
+  state.current = 0;
+  state.answers = {};
+  state.startTime = Date.now();
+  state.submitted = false;
+  if (DURATION_MINUTES > 0) {
+    const deadline = state.startTime + DURATION_MINUTES * 60000;
+    state.timerId = setInterval(() => {
+      const left = deadline - Date.now();
+      const el = document.getElementById("timer");
+      if (el) {
+        el.textContent = fmt(left);
+        if (left < 60000) el.classList.add("warn");
+      }
+      if (left <= 0) finish(true);
+    }, 500);
+  }
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const qi = state.order[state.current];
+  const q = QUESTIONS[qi];
+  const total = state.order.length;
+  const progress = Math.round((state.current / total) * 100);
+  app.innerHTML = `
+    <div class="card">
+      <div class="meta">
+        <span>Question ${state.current + 1} / ${total}</span>
+        ${DURATION_MINUTES > 0 ? '<span class="timer" id="timer">--:--</span>' : "<span>QCM DVI</span>"}
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${progress}%"></div></div>
+      <h2>${q.q}</h2>
+      <div id="choices">${q.choices.map((c, i) => `
+        <button type="button" class="choice" data-i="${i}">
+          <span class="badge">${LETTERS[i]}</span><span>${c}</span>
+        </button>`).join("")}
+      </div>
+      <button class="btn-primary" id="nextBtn" disabled>
+        ${state.current + 1 === total ? "Voir le résultat" : "Question suivante"}
+      </button>
+    </div>`;
+  let sel = null;
+  const nextBtn = document.getElementById("nextBtn");
+  document.getElementById("choices").addEventListener("click", (e) => {
+    const btn = e.target.closest(".choice");
+    if (!btn) return;
+    sel = Number(btn.dataset.i);
+    document.querySelectorAll(".choice").forEach((b) => b.classList.remove("sel"));
+    btn.classList.add("sel");
+    nextBtn.disabled = false;
+  });
+  nextBtn.addEventListener("click", () => {
+    state.answers[qi] = sel;
+    state.current++;
+    if (state.current >= total) finish(false);
+    else renderQuestion();
+  });
+}
+
+function finish(timeout) {
+  if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+  state.timeSpent = Date.now() - state.startTime;
+  renderResult(timeout);
+}
+
+function renderResult(timeout) {
+  const score = state.order.filter((qi) => state.answers[qi] === QUESTIONS[qi].answer).length;
+  const total = state.order.length;
+  const pct = Math.round((score / total) * 100);
+  const emoji = pct >= 80 ? "🎉" : pct >= 50 ? "👍" : "📚";
+  const color = pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
+  const review = state.order.map((qi, idx) => {
+    const q = QUESTIONS[qi];
+    const given = state.answers[qi];
+    const ok = given === q.answer;
+    return `<div class="review ${ok ? "ok" : "ko"}">
+      <p><strong>${idx + 1}. ${q.q}</strong> ${ok ? "✅" : "❌"}</p>
+      ${!ok && given != null ? `<p class="bad">Votre réponse : ${LETTERS[given]}. ${q.choices[given]}</p>` : ""}
+      <p class="good">Bonne réponse : ${LETTERS[q.answer]}. ${q.choices[q.answer]}</p>
+      <p class="exp">${q.explain}</p>
+    </div>`;
+  }).join("");
+  app.innerHTML = `
+    <div class="card center">
+      ${timeout ? '<div class="alert">⏱ Temps écoulé — le QCM a été clôturé automatiquement.</div>' : ""}
+      <div style="font-size:3rem">${emoji}</div>
+      <h1 class="scorebig">${score} / ${total}</h1>
+      <p class="sub">${state.student.prenom} ${state.student.nom} — ${state.student.service} · ${pct}% · temps : ${fmt(state.timeSpent)}</p>
+      <div class="bar-bg" style="margin-top:8px"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div id="submitStatus" class="sub" style="margin-top:6px"></div>
+      <div class="volunteer" style="text-align:left; border:2px solid #e2e8f0; border-radius:14px; padding:18px; margin-top:18px">
+        <p style="font-weight:700; margin:0 0 4px">Volontariat pour les composantes DVI</p>
+        <p style="font-size:.85rem; color:#64748b; margin:0 0 12px">Cochez éventuellement votre ou vos volontariats (plusieurs choix possibles) :</p>
+        <label style="display:flex; align-items:center; gap:10px; font-weight:500; font-size:.95rem; margin:8px 0; cursor:pointer">
+          <input type="checkbox" id="volAM" />
+          <span>Je suis volontaire pour la composante <strong>Ante Mortem (AM)</strong></span>
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; font-weight:500; font-size:.95rem; margin:8px 0; cursor:pointer">
+          <input type="checkbox" id="volPM" />
+          <span>Je suis volontaire pour la composante <strong>Post Mortem (PM)</strong></span>
+        </label>
+        <button class="btn-primary" id="sendBtn" style="margin-top:12px">Envoyer mon résultat</button>
+      </div>
+      <div style="height:14px"></div>
+      <button id="retryBtn" class="btn-primary" disabled style="max-width:340px; background:#e2e8f0; color:#94a3b8">Recommencer (après envoi)</button>
+    </div>
+    <div style="height:18px"></div>
+    ${review}`;
+  document.getElementById("sendBtn").addEventListener("click", () => {
+    const vam = document.getElementById("volAM").checked;
+    const vpm = document.getElementById("volPM").checked;
+    document.getElementById("sendBtn").disabled = true;
+    submitScore(vam, vpm).then(() => {
+      const btn = document.getElementById("retryBtn");
+      if (btn) { btn.disabled = false; btn.style.background = "#2563eb"; btn.style.color = "#fff"; }
+    });
+  });
+  document.getElementById("retryBtn").addEventListener("click", () => { if (!state.submitted) return; startQuiz(); });
+}
+
+async function submitScore(volAM, volPM) {
+  state.submitted = true;
+  const el = () => document.getElementById("submitStatus");
+  const score = state.order.filter((qi) => state.answers[qi] === QUESTIONS[qi].answer).length;
+  const payload = {
+    nom: state.student.nom, prenom: state.student.prenom, service: state.student.service,
+    score: score, total: state.order.length,
+    percentage: Math.round((score / state.order.length) * 100),
+    time_spent_sec: Math.round(state.timeSpent / 1000),
+    date: new Date().toISOString(),
+    volontaireAM: !!volAM,
+    volontairePM: !!volPM,
+    answers: state.order.map((qi, i) => ({
+      question: QUESTIONS[qi].q,
+      question_index: qi,
+      given: state.answers[qi], correct_index: QUESTIONS[qi].answer,
+    })),
+  };
+  if (!SUBMIT_URL) { if (el()) el().innerHTML = '<div class="alert" style="display:block">⚠️ Aucun SUBMIT_URL configuré : le score n\'est pas enregistré.</div>'; return; }
+  try {
+    // Apps Script (Google) exige un POST "simple request" sans Content-Type JSON
+    // (sinon le navigateur déclenche une pré-vérification CORS non gérée par Google).
+    const res = await fetch(SUBMIT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      redirect: "follow",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error("HTTP " + res.status);
+    if (el()) el().innerHTML = '<span class="okmsg" style="display:block">✅ Score enregistré avec succès.</span>';
+  } catch (err) {
+    if (el()) el().innerHTML = '<div class="alert" style="display:block">⚠️ Échec de l\'envoi du score (' + err.message + '). Contactez votre enseignant.</div>';
+  }
+}
+
+renderIntro();
+</script>
+</body>
+</html>
